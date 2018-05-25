@@ -1,10 +1,11 @@
---require source-map-support/register
---require spec-js/helpers/testScheduler-ui.js
---ui spec-js/helpers/testScheduler-ui.js
+--require ts-node/register
+--require tsconfig-paths/register
+--require spec/helpers/polyfills.ts
+--require spec/helpers/testScheduler-ui.ts
+--ui spec/helpers/testScheduler-ui.ts
 
 --reporter dot
 
---full-trace
 --check-leaks
 --globals WebSocket,FormData,XDomainRequest,ActiveXObject
 

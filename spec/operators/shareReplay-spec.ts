@@ -1,13 +1,9 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
-
+declare function asDiagram(arg: string): Function;
+declare const rxTestScheduler: Rx.TestScheduler;
 const Observable = Rx.Observable;
 
 /** @test {shareReplay} */
@@ -163,5 +159,50 @@ describe('Observable.prototype.shareReplay', () => {
     expectObservable(subscriber2).toBe(expected2);
     expectObservable(subscriber3).toBe(expected3);
     expectSubscriptions(source.subscriptions).toBe(subs);
+  });
+
+  it('should not restart if refCount hits 0 due to unsubscriptions', () => {
+    const results: number[] = [];
+    const source = Rx.Observable.interval(10, rxTestScheduler)
+      .take(10)
+      .shareReplay(1);
+    const subs = source.subscribe(x => results.push(x));
+    rxTestScheduler.schedule(() => subs.unsubscribe(), 35);
+    rxTestScheduler.schedule(() => source.subscribe(x => results.push(x)), 54);
+
+    rxTestScheduler.flush();
+    expect(results).to.deep.equal([0, 1, 2, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it('should not break lift() composability', (done: MochaDone) => {
+    class MyCustomObservable<T> extends Rx.Observable<T> {
+      lift<R>(operator: Rx.Operator<T, R>): Rx.Observable<R> {
+        const observable = new MyCustomObservable<R>();
+        (<any>observable).source = this;
+        (<any>observable).operator = operator;
+        return observable;
+      }
+    }
+
+    const result = new MyCustomObservable((observer: Rx.Observer<number>) => {
+      observer.next(1);
+      observer.next(2);
+      observer.next(3);
+      observer.complete();
+    }).shareReplay();
+
+    expect(result instanceof MyCustomObservable).to.be.true;
+
+    const expected = [1, 2, 3];
+
+    result
+      .subscribe((n: any) => {
+        expect(expected.length).to.be.greaterThan(0);
+        expect(n).to.equal(expected.shift());
+      }, (x) => {
+        done(new Error('should not be called'));
+      }, () => {
+        done();
+      });
   });
 });

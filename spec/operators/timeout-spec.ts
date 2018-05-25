@@ -1,13 +1,9 @@
 import { expect } from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import * as Rx from 'rxjs/Rx';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
+declare function asDiagram(arg: string): Function;
 declare const rxTestScheduler: Rx.TestScheduler;
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
 
 const Observable = Rx.Observable;
 
@@ -29,14 +25,17 @@ describe('Observable.prototype.timeout', () => {
   it('should emit and error of an instanceof TimeoutError on timeout', () => {
     const e1 =  cold('-------a--b--|');
     const result = e1.timeout(50, rxTestScheduler);
+    let error;
     result.subscribe(() => {
       throw new Error('this should not next');
     }, err => {
-      expect(err).to.be.an.instanceof(Rx.TimeoutError);
+      error = err;
     }, () => {
       throw new Error('this should not complete');
     });
     rxTestScheduler.flush();
+    expect(error).to.be.an.instanceof(Rx.TimeoutError);
+    expect(error).to.have.property('name', 'TimeoutError');
   });
 
   it('should not timeout if source completes within absolute timeout period', () => {

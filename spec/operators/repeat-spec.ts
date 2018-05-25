@@ -1,11 +1,8 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 declare const rxTestScheduler: Rx.TestScheduler;
 const Observable = Rx.Observable;
@@ -37,7 +34,7 @@ describe('Observable.prototype.repeat', () => {
 
   it('should complete without emit when count is zero', () => {
     const e1 =  cold('--a--b--|');
-    const subs = [];
+    const subs: string[] = [];
     const expected = '|';
 
     expectObservable(e1.repeat(0)).toBe(expected);
@@ -135,7 +132,7 @@ describe('Observable.prototype.repeat', () => {
 
   it('should complete immediately when source does not complete without emit but count is zero', () => {
     const e1 =  cold('-');
-    const subs = [];
+    const subs: string[] = [];
     const expected = '|';
 
     expectObservable(e1.repeat(0)).toBe(expected);
@@ -144,7 +141,7 @@ describe('Observable.prototype.repeat', () => {
 
   it('should complete immediately when source does not complete but count is zero', () => {
     const e1 =   cold('--a--b--');
-    const subs = [];
+    const subs: string[] = [];
     const expected = '|';
 
     expectObservable(e1.repeat(0)).toBe(expected);
@@ -182,7 +179,7 @@ describe('Observable.prototype.repeat', () => {
 
   it('should complete immediately when source does not emit but count is zero', () => {
     const e1 =  cold('----|');
-    const subs = [];
+    const subs: string[] = [];
     const expected = '|';
 
     expectObservable(e1.repeat(0)).toBe(expected);
@@ -214,54 +211,6 @@ describe('Observable.prototype.repeat', () => {
 
     expectObservable(e1.repeat()).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
-  });
-
-  it('should terminate repeat and throw if source subscription to _next throws', () => {
-    const e1 = Observable.of<number>(1, 2, rxTestScheduler);
-    e1.subscribe(() => { throw new Error('error'); });
-
-    expect(() => {
-      e1.repeat(3);
-      rxTestScheduler.flush();
-    }).to.throw();
-  });
-
-  it('should terminate repeat and throw if source subscription to _complete throws', () => {
-    const e1 = Observable.of<number>(1, 2, rxTestScheduler);
-    e1.subscribe(() => {
-      //noop
-    }, () => {
-      //noop
-    }, () => { throw new Error('error'); });
-
-    expect(() => {
-      e1.repeat(3);
-      rxTestScheduler.flush();
-    }).to.throw();
-  });
-
-  it('should terminate repeat and throw if source subscription to _next throws when repeating infinitely', () => {
-    const e1 = Observable.of<number>(1, 2, rxTestScheduler);
-    e1.subscribe(() => { throw new Error('error'); });
-
-    expect(() => {
-      e1.repeat();
-      rxTestScheduler.flush();
-    }).to.throw();
-  });
-
-  it('should terminate repeat and throw if source subscription to _complete throws when repeating infinitely', () => {
-    const e1 = Observable.of<number>(1, 2, rxTestScheduler);
-    e1.subscribe(() => {
-      //noop
-    }, () => {
-      //noop
-    }, () => { throw new Error('error'); });
-
-    expect(() => {
-      e1.repeat();
-      rxTestScheduler.flush();
-    }).to.throw();
   });
 
   it('should raise error after first emit succeed', () => {

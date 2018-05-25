@@ -1,26 +1,23 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
+import { expect } from 'chai';
+import { of, throwError, EMPTY, from } from 'rxjs';
+import { catchError, map, mergeMap } from 'rxjs/operators';
+import { TestScheduler } from 'rxjs/testing';
 import * as sinon from 'sinon';
-import {createObservableInputs} from '../helpers/test-helper';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { createObservableInputs } from '../helpers/test-helper';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
-declare const rxTestSchdeuler: Rx.TestScheduler;
-const Observable = Rx.Observable;
+declare const rxTestSchdeuler: TestScheduler;
 
 /** @test {catch} */
-describe('Observable.prototype.catch', () => {
+describe('catchError operator', () => {
   asDiagram('catch')('should catch error and replace with a cold Observable', () => {
     const e1 =   hot('--a--b--#       ');
     const e2 =  cold(        '-1-2-3-|');
     const expected = '--a--b---1-2-3-|';
 
-    const result = e1.catch((err: any) => e2);
+    const result = e1.pipe(catchError((err: any) => e2));
 
     expectObservable(result).toBe(expected);
   });
@@ -30,16 +27,17 @@ describe('Observable.prototype.catch', () => {
     const subs =     '^       !';
     const expected = '--a--b--(XYZ|)';
 
-    const result = e1
-      .map((n: string) => {
+    const result = e1.pipe(
+      map((n: string) => {
         if (n === 'c') {
           throw 'bad';
         }
         return n;
+      }),
+      catchError((err: any) => {
+        return of('X', 'Y', 'Z');
       })
-      .catch((err: any) => {
-        return Observable.of('X', 'Y', 'Z');
-      });
+    );
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(subs);
@@ -52,7 +50,7 @@ describe('Observable.prototype.catch', () => {
     const e2subs =   '        ^         !';
     const expected = '--a--b--1-2-3-4-5-|';
 
-    const result = e1.catch((err: any) => e2);
+    const result = e1.pipe(catchError((err: any) => e2));
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -65,9 +63,11 @@ describe('Observable.prototype.catch', () => {
     const expected = '--1-2-3-         ';
     const unsub =    '       !         ';
 
-    const result = e1.catch(() => {
-      return Observable.of('X', 'Y', 'Z');
-    });
+    const result = e1.pipe(
+      catchError(() => {
+        return of('X', 'Y', 'Z');
+      })
+    );
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -79,12 +79,13 @@ describe('Observable.prototype.catch', () => {
     const expected = '--1-2-3-         ';
     const unsub =    '       !         ';
 
-    const result = e1
-      .mergeMap((x: any) => Observable.of(x))
-      .catch(() => {
-        return Observable.of('X', 'Y', 'Z');
-      })
-      .mergeMap((x: any) => Observable.of(x));
+    const result = e1.pipe(
+      mergeMap((x: any) => of(x)),
+      catchError(() => {
+        return of('X', 'Y', 'Z');
+      }),
+      mergeMap((x: any) => of(x))
+    );
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -98,7 +99,7 @@ describe('Observable.prototype.catch', () => {
     const expected = '-1-2-3-5-6-7-     ';
     const unsub =    '            !     ';
 
-    const result = e1.catch(() => e2);
+    const result = e1.pipe(catchError(() => e2));
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -113,7 +114,7 @@ describe('Observable.prototype.catch', () => {
     const expected = '-1-2-3-5-6-7-     ';
     const unsub =    '            !     ';
 
-    const result = e1.catch(() => e2);
+    const result = e1.pipe(catchError(() => e2));
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -127,7 +128,7 @@ describe('Observable.prototype.catch', () => {
     const e2subs =   '        ^         !';
     const expected = '--a--b--5-6-7-8-9-|';
 
-    const result = e1.catch((err: any) => e2);
+    const result = e1.pipe(catchError((err: any) => e2));
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -143,19 +144,20 @@ describe('Observable.prototype.catch', () => {
     const expected = '--a--b----a--b----a--b--#';
 
     let retries = 0;
-    const result = e1
-      .map((n: any) => {
+    const result = e1.pipe(
+      map((n: any) => {
         if (n === 'c') {
           throw 'bad';
         }
         return n;
-      })
-      .catch((err: any, caught: any) => {
+      }),
+      catchError((err: any, caught: any) => {
         if (retries++ === 2) {
           throw 'done';
         }
         return caught;
-      });
+      })
+    );
 
     expectObservable(result).toBe(expected, undefined, 'done');
     expectSubscriptions(e1.subscriptions).toBe(subs);
@@ -169,19 +171,20 @@ describe('Observable.prototype.catch', () => {
     const expected = '--a--b-------d---|';
 
     let retries = 0;
-    const result = e1
-      .map((n: any) => {
+    const result = e1.pipe(
+      map((n: any) => {
         if (n === 'c') {
           throw 'bad';
         }
         return n;
-      })
-      .catch((err: any, caught: any) => {
+      }),
+      catchError((err: any, caught: any) => {
         if (retries++ === 2) {
           throw 'done';
         }
         return caught;
-      });
+      })
+    );
 
     expectObservable(result).toBe(expected, undefined, 'done');
     expectSubscriptions(e1.subscriptions).toBe(subs);
@@ -192,7 +195,7 @@ describe('Observable.prototype.catch', () => {
     const subs =     '(^!)';
     const expected = '(abc|)';
 
-    const result = e1.catch((err: any) => Observable.of('a', 'b', 'c'));
+    const result = e1.pipe(catchError((err: any) => of('a', 'b', 'c')));
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(subs);
@@ -203,7 +206,7 @@ describe('Observable.prototype.catch', () => {
     const subs =     '^          !';
     const expected = '--a--b--c--|';
 
-    const result = e1.catch((err: any) => Observable.of('x', 'y', 'z'));
+    const result = e1.pipe(catchError((err: any) => of('x', 'y', 'z')));
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(subs);
@@ -216,7 +219,7 @@ describe('Observable.prototype.catch', () => {
     const e2subs =   '        (^!)';
     const expected = '--a--b--|';
 
-    const result = e1.catch(() => e2);
+    const result = e1.pipe(catchError(() => e2));
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -230,21 +233,21 @@ describe('Observable.prototype.catch', () => {
     const e2subs =   '        (^!)';
     const expected = '--a--b--#';
 
-    const result = e1.catch(() => e2);
+    const result = e1.pipe(catchError(() => e2));
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
     expectSubscriptions(e2.subscriptions).toBe(e2subs);
   });
 
-  it('should never terminate if you return Observable.never()', () => {
+  it('should never terminate if you return NEVER', () => {
     const e1 =   hot('--a--b--#');
     const e1subs =   '^       !';
     const e2 = cold(         '-');
     const e2subs =   '        ^';
     const expected = '--a--b---';
 
-    const result = e1.catch(() => e2);
+    const result = e1.pipe(catchError(() => e2));
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -252,25 +255,27 @@ describe('Observable.prototype.catch', () => {
   });
 
   it('should pass the error as the first argument', (done: MochaDone) => {
-    Observable.throw('bad')
-      .catch((err: any) => {
+    throwError('bad').pipe(
+      catchError((err: any) => {
         expect(err).to.equal('bad');
-        return Observable.empty();
+        return EMPTY;
       })
-      .subscribe(() => {
-        //noop
-       }, (err: any) => {
-          done(new Error('should not be called'));
-        }, () => {
-          done();
-        });
+    ).subscribe(() => {
+    //noop
+    }, (err: any) => {
+      done(new Error('should not be called'));
+    }, () => {
+      done();
+    });
   });
 
   it('should accept selector returns any ObservableInput', (done: MochaDone) => {
     const input$ = createObservableInputs(42);
 
-    input$.mergeMap(input =>
-      Observable.throw('bad').catch(err => input)
+    input$.pipe(
+      mergeMap(input =>
+        throwError('bad').pipe(catchError(err => input))
+      )
     ).subscribe(x => {
       expect(x).to.be.equal(42);
     }, (err: any) => {
@@ -297,51 +302,15 @@ describe('Observable.prototype.catch', () => {
       sandbox.restore();
     });
 
-    it('should chain a throw from a promise using throw', (done: MochaDone) => {
-      const subscribeSpy = sinon.spy();
-      const testError = new Error('BROKEN PROMISE');
-      Observable.fromPromise(Promise.reject(testError)).catch(err => {
-        throw new Error('BROKEN THROW');
-      }).subscribe(subscribeSpy);
-
-      trueSetTimeout(() => {
-        try {
-          timers.tick(1);
-        } catch (e) {
-          expect(subscribeSpy).not.to.be.called;
-          expect(e.message).to.equal('BROKEN THROW');
-          return done();
-        }
-        done(new Error('This should have thrown an error'));
-      }, 0);
-    });
-
-    it('should chain a throw from a promise using Observable.throw', (done: MochaDone) => {
-      const subscribeSpy = sinon.spy();
-      const testError = new Error('BROKEN PROMISE');
-      Observable.fromPromise(Promise.reject(testError)).catch(err =>
-        Observable.throw(new Error('BROKEN THROW'))
-      ).subscribe(subscribeSpy);
-
-      trueSetTimeout(() => {
-        try {
-          timers.tick(1);
-        } catch (e) {
-          expect(subscribeSpy).not.to.be.called;
-          expect(e.message).to.equal('BROKEN THROW');
-          return done();
-        }
-        done(new Error('This should have thrown an error'));
-      }, 0);
-    });
-
     it('should chain a throw from a promise using Observable.throw', (done: MochaDone) => {
       const subscribeSpy = sinon.spy();
       const errorSpy = sinon.spy();
       const thrownError = new Error('BROKEN THROW');
       const testError = new Error('BROKEN PROMISE');
-      Observable.fromPromise(Promise.reject(testError)).catch(err =>
-        Observable.throw(thrownError)
+      from(Promise.reject(testError)).pipe(
+        catchError(err =>
+          throwError(thrownError)
+        )
       ).subscribe(subscribeSpy, errorSpy);
 
       trueSetTimeout(() => {

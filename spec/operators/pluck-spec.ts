@@ -1,11 +1,8 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 const Observable = Rx.Observable;
 
@@ -81,7 +78,7 @@ describe('Observable.prototype.pluck', () => {
     const a =   cold('--a-b--c-d---e-|', inputs);
     const asubs =    '^              !';
     const expected = '--r-x--y-z---w-|';
-    const values = {r: 1, x: undefined, y: undefined, z: undefined, w: 5};
+    const values: { [key: string]: number | undefined } = {r: 1, x: undefined, y: undefined, z: undefined, w: 5};
 
     const r = a.pluck('a', 'b', 'c');
     expectObservable(r).toBe(expected, values);
@@ -165,8 +162,8 @@ describe('Observable.prototype.pluck', () => {
     const expected = '--1--2-     ';
 
     const r = a
-      .mergeMap((x: string) => Observable.of(x))
-      .pluck('prop')
+      .mergeMap((x: { prop: string }) => Observable.of(x))
+      .pluck<{ prop: string }, string>('prop')
       .mergeMap((x: string) => Observable.of(x));
 
     expectObservable(r, unsub).toBe(expected);

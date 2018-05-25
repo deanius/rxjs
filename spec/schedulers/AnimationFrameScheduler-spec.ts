@@ -1,6 +1,6 @@
-import {expect} from 'chai';
+import { expect } from 'chai';
 import * as sinon from 'sinon';
-import * as Rx from '../../dist/cjs/Rx';
+import * as Rx from 'rxjs/Rx';
 
 const animationFrame = Rx.Scheduler.animationFrame;
 
@@ -22,6 +22,21 @@ describe('Scheduler.animationFrame', () => {
     expect(actionHappened).to.be.false;
     fakeTimer.tick(25);
     expect(actionHappened).to.be.true;
+    sandbox.restore();
+  });
+
+  it('should cancel animationFrame actions when unsubscribed', () => {
+    let actionHappened = false;
+    const sandbox = sinon.sandbox.create();
+    const fakeTimer = sandbox.useFakeTimers();
+    animationFrame.schedule(() => {
+      actionHappened = true;
+    }, 50).unsubscribe();
+    expect(actionHappened).to.be.false;
+    fakeTimer.tick(25);
+    expect(actionHappened).to.be.false;
+    fakeTimer.tick(25);
+    expect(actionHappened).to.be.false;
     sandbox.restore();
   });
 

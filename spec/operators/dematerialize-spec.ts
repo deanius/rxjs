@@ -1,17 +1,13 @@
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { of, Notification, Observable } from 'rxjs';
+import { dematerialize, map, mergeMap } from 'rxjs/operators';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
-const Observable = Rx.Observable;
-const Notification = Rx.Notification;
+const NO_VALUES: { [key: string]: Notification<any> } = {};
 
 /** @test {dematerialize} */
-describe('Observable.prototype.dematerialize', () => {
+describe('dematerialize operator', () => {
   asDiagram('dematerialize')('should dematerialize an Observable', () => {
     const values = {
       a: '{x}',
@@ -23,13 +19,16 @@ describe('Observable.prototype.dematerialize', () => {
     const e1 =   hot('--a--b--c--d-|', values);
     const expected = '--x--y--z--|';
 
-    const result = e1.map((x: string) => {
-      if (x === '|') {
-        return Notification.createComplete();
-      } else {
-        return Notification.createNext(x.replace('{', '').replace('}', ''));
-      }
-    }).dematerialize();
+    const result = e1.pipe(
+      map((x: string) => {
+        if (x === '|') {
+          return Notification.createComplete();
+        } else {
+          return Notification.createNext(x.replace('{', '').replace('}', ''));
+        }
+      }),
+      dematerialize()
+    );
 
     expectObservable(result).toBe(expected);
   });
@@ -46,7 +45,7 @@ describe('Observable.prototype.dematerialize', () => {
     const e1subs =   '^          !';
     const expected = '--w--x--y--|';
 
-    expectObservable(e1.dematerialize()).toBe(expected);
+    expectObservable(e1.pipe(dematerialize())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -62,43 +61,43 @@ describe('Observable.prototype.dematerialize', () => {
     const e1subs =   '^          !';
     const expected = '--w--x--y--#';
 
-    expectObservable(e1.dematerialize()).toBe(expected);
+    expectObservable(e1.pipe(dematerialize())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
   it('should dematerialize stream does not completes', () => {
-    const e1 =   hot('------');
+    const e1 = hot('------', NO_VALUES);
     const e1subs =   '^';
     const expected = '-';
 
-    expectObservable(e1.dematerialize()).toBe(expected);
+    expectObservable(e1.pipe(dematerialize())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
   it('should dematerialize stream never completes', () => {
-    const e1 =  cold('-');
+    const e1 =  cold('-', NO_VALUES);
     const e1subs =   '^';
     const expected = '-';
 
-    expectObservable(e1.dematerialize()).toBe(expected);
+    expectObservable(e1.pipe(dematerialize())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
   it('should dematerialize stream does not emit', () => {
-    const e1 =   hot('----|');
+    const e1 =   hot('----|', NO_VALUES);
     const e1subs =   '^   !';
     const expected = '----|';
 
-    expectObservable(e1.dematerialize()).toBe(expected);
+    expectObservable(e1.pipe(dematerialize())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
   it('should dematerialize empty stream', () => {
-    const e1 =  cold('|');
+    const e1 =  cold('|', NO_VALUES);
     const e1subs =   '(^!)';
     const expected = '|';
 
-    expectObservable(e1.dematerialize()).toBe(expected);
+    expectObservable(e1.pipe(dematerialize())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -108,7 +107,7 @@ describe('Observable.prototype.dematerialize', () => {
     const e1subs =   '(^!)';
     const expected = '#';
 
-    expectObservable(e1.dematerialize()).toBe(expected, null, error);
+    expectObservable(e1.pipe(dematerialize())).toBe(expected, null, error);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -123,7 +122,7 @@ describe('Observable.prototype.dematerialize', () => {
     const expected = '--w--x--       ';
     const unsub =    '       !       ';
 
-    const result = e1.dematerialize();
+    const result = e1.pipe(dematerialize());
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -140,10 +139,11 @@ describe('Observable.prototype.dematerialize', () => {
     const expected = '--w--x--       ';
     const unsub =    '       !       ';
 
-    const result = e1
-      .mergeMap((x: any) => Observable.of(x))
-      .dematerialize()
-      .mergeMap((x: any) => Observable.of(x));
+    const result = e1.pipe(
+      mergeMap((x: any) => of(x)),
+      dematerialize(),
+      mergeMap((x: any) => of(x))
+    );
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -154,7 +154,7 @@ describe('Observable.prototype.dematerialize', () => {
     const e1subs =   '^   !';
     const expected = '----|';
 
-    expectObservable(e1.dematerialize()).toBe(expected);
+    expectObservable(e1.pipe(dematerialize())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -163,7 +163,7 @@ describe('Observable.prototype.dematerialize', () => {
     const e1subs =   '^   !';
     const expected = '----|';
 
-    expectObservable(e1.dematerialize()).toBe(expected);
+    expectObservable(e1.pipe(dematerialize())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 });

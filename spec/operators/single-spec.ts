@@ -1,11 +1,8 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { hot, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 const Observable = Rx.Observable;
 /** @test {single} */
@@ -77,7 +74,7 @@ describe('Observable.prototype.single', () => {
     const e1subs =          '^  !';
     const expected =        '---#';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       return value === 'c';
     };
 
@@ -90,7 +87,7 @@ describe('Observable.prototype.single', () => {
     const e1subs =    '^          !   ';
     const expected =  '-----------#   ';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       if (value !== 'd') {
         return false;
       }
@@ -106,7 +103,7 @@ describe('Observable.prototype.single', () => {
     const e1subs =    '^          !';
     const expected =  '-----------(b|)';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       return value === 'b';
     };
 
@@ -119,7 +116,7 @@ describe('Observable.prototype.single', () => {
     const e1subs =    '^          !      ';
     const expected =  '-----------#      ';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       return value === 'b';
     };
 
@@ -132,7 +129,7 @@ describe('Observable.prototype.single', () => {
     const e1subs =      '^  !';
     const expected =    '---#';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       return value === 'a';
     };
 
@@ -145,7 +142,7 @@ describe('Observable.prototype.single', () => {
     const e1subs =    '^          !';
     const expected =  '-----------(z|)';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       return value === 'x';
     };
 
@@ -158,8 +155,8 @@ describe('Observable.prototype.single', () => {
     const e1subs =    '^          !';
     const expected =  '-----------(b|)';
 
-    let indices = [];
-    const predicate = function(value, index) {
+    let indices: number[] = [];
+    const predicate = function(value: string, index: number) {
       indices.push(index);
       return value === 'b';
     };

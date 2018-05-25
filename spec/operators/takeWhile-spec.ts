@@ -1,12 +1,8 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 const Observable = Rx.Observable;
 /** @test {takeWhile} */
@@ -63,7 +59,7 @@ describe('Observable.prototype.takeWhile', () => {
     const e1subs =     '^       !      ';
     const expected =   '--b--c--|      ';
 
-    function predicate(value) {
+    function predicate(value: string) {
       return value !== 'd';
     }
 
@@ -116,7 +112,7 @@ describe('Observable.prototype.takeWhile', () => {
     const e1subs =     '^       !      ';
     const expected =   '--b--c--|      ';
 
-    function predicate(value, index) {
+    function predicate(value: string, index: number) {
       return index < 2;
     }
 
@@ -148,7 +144,7 @@ describe('Observable.prototype.takeWhile', () => {
     const expected =   '--b--c--|      ';
 
     let invoked = 0;
-    function predicate(value) {
+    function predicate(value: string) {
       invoked++;
       return value !== 'd';
     }
@@ -165,7 +161,7 @@ describe('Observable.prototype.takeWhile', () => {
     const e1subs =     '^ !            ';
     const expected =   '--#            ';
 
-    function predicate(value) {
+    function predicate(value: string) {
       throw 'error';
     }
 
@@ -179,7 +175,7 @@ describe('Observable.prototype.takeWhile', () => {
     const e1subs =     '^    !         ';
     const expected =   '--b---         ';
 
-    function predicate(value) {
+    function predicate(value: string) {
       return value !== 'd';
     }
 
@@ -193,7 +189,7 @@ describe('Observable.prototype.takeWhile', () => {
     const e1subs =     '^    !         ';
     const expected =   '--b---         ';
 
-    function predicate(value) {
+    function predicate(value: string) {
       return value !== 'd';
     }
 

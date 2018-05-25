@@ -1,23 +1,19 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 const Observable = Rx.Observable;
 
 /** @test {every} */
 describe('Observable.prototype.every', () => {
-  function truePredicate(x) {
+  function truePredicate(x: number | string) {
     return true;
   }
 
-  function predicate(x) {
-    return x % 5 === 0;
+  function predicate(x: number | string) {
+    return (+x) % 5 === 0;
   }
 
   asDiagram('every(x => x % 5 === 0)')('should return false if only some of element matches with predicate', () => {
@@ -32,7 +28,7 @@ describe('Observable.prototype.every', () => {
   it('should accept thisArg with scalar observables', () => {
     const thisArg = {};
 
-    Observable.of(1).every(function (value: number, index: number) {
+    Observable.of(1).every(function (this: any, value: number, index: number) {
       expect(this).to.deep.equal(thisArg);
       return true;
     }, thisArg).subscribe();
@@ -42,7 +38,7 @@ describe('Observable.prototype.every', () => {
   it('should accept thisArg with array observables', () => {
     const thisArg = {};
 
-    Observable.of(1, 2, 3, 4).every(function (value: number, index: number) {
+    Observable.of(1, 2, 3, 4).every(function (this: any, value: number, index: number) {
       expect(this).to.deep.equal(thisArg);
       return true;
     }, thisArg).subscribe();
@@ -55,7 +51,7 @@ describe('Observable.prototype.every', () => {
       observer.next(1);
       observer.complete();
     })
-    .every(function (value: number, index: number) {
+    .every(function (this: any, value: number, index: number) {
       expect(this).to.deep.equal(thisArg);
     }, thisArg).subscribe();
   });
@@ -128,7 +124,7 @@ describe('Observable.prototype.every', () => {
     const sourceSubs = '^       !';
     const expected =   '--------#';
 
-    function faultyPredicate(x) {
+    function faultyPredicate(x: string) {
       if (x === 'c') {
         throw 'error';
       } else {
@@ -167,7 +163,7 @@ describe('Observable.prototype.every', () => {
     const source = Observable.of(3);
     const expected = '#';
 
-    function faultyPredicate(x) {
+    function faultyPredicate(x: number) {
       throw 'error';
     }
 
@@ -192,7 +188,7 @@ describe('Observable.prototype.every', () => {
     const source = Observable.of(5, 10, 15, 20);
     const expected = '#';
 
-    function faultyPredicate(x) {
+    function faultyPredicate(x: number) {
       if (x === 15) {
         throw 'error';
       }

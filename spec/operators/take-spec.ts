@@ -1,12 +1,8 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 const Subject = Rx.Subject;
 const Observable = Rx.Observable;
@@ -42,7 +38,7 @@ describe('Observable.prototype.take', () => {
 
   it('should be empty on take(0)', () => {
     const e1 = hot('--a--^--b----c---d--|');
-    const e1subs = []; // Don't subscribe at all
+    const e1subs: string[] = []; // Don't subscribe at all
     const expected =    '|';
 
     expectObservable(e1.take(0)).toBe(expected);
@@ -134,7 +130,7 @@ describe('Observable.prototype.take', () => {
   });
 
   it('should unsubscribe from the source when it reaches the limit', () => {
-    const source = Observable.create(observer => {
+    const source = new Observable<number>(observer => {
       expect(observer.closed).to.be.false;
       observer.next(42);
       expect(observer.closed).to.be.true;

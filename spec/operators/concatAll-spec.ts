@@ -1,17 +1,15 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import { from, throwError, of, Observable } from 'rxjs';
+import { concatAll, take, mergeMap } from 'rxjs/operators';
+import { TestScheduler } from 'rxjs/testing';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
-declare const rxTestScheduler: Rx.TestScheduler;
-const Observable = Rx.Observable;
+declare function asDiagram(arg: string): Function;
+declare const type: Function;
+declare const rxTestScheduler: TestScheduler;
 
 /** @test {concatAll} */
-describe('Observable.prototype.concatAll', () => {
+describe('concatAll operator', () => {
   asDiagram('concatAll')('should concat an observable of observables', () => {
     const x = cold(    '----a------b------|                 ');
     const y = cold(                      '---c-d---|        ');
@@ -19,44 +17,44 @@ describe('Observable.prototype.concatAll', () => {
     const outer = hot('-x---y----z------|              ', { x: x, y: y, z: z });
     const expected =  '-----a------b---------c-d------e--f-|';
 
-    const result = outer.concatAll();
+    const result = outer.pipe(concatAll());
 
     expectObservable(result).toBe(expected);
   });
 
-  it('should concat sources from promise', function (done: MochaDone) {
+  it('should concat sources from promise', function (done) {
     this.timeout(2000);
-    const sources = Rx.Observable.from([
-      new Promise((res: any) => { res(0); }),
-      new Promise((res: any) => { res(1); }),
-      new Promise((res: any) => { res(2); }),
-      new Promise((res: any) => { res(3); }),
-    ]).take(10);
+    const sources = from([
+      new Promise<number>((res) => { res(0); }),
+      new Promise<number>((res) => { res(1); }),
+      new Promise<number>((res) => { res(2); }),
+      new Promise<number>((res) => { res(3); }),
+    ]).pipe(take(10));
 
-    const res = [];
-    (<any>sources.concatAll()).subscribe(
-      (x: number) => { res.push(x); },
-      (err: any) => { done(new Error('should not be called')); },
+    const res: number[] = [];
+    sources.pipe(concatAll()).subscribe(
+      (x) => { res.push(x); },
+      (err) => { done(new Error('should not be called')); },
       () => {
         expect(res).to.deep.equal([0, 1, 2, 3]);
         done();
       });
   });
 
-  it('should concat and raise error from promise', function (done: MochaDone) {
+  it('should concat and raise error from promise', function (done) {
     this.timeout(2000);
 
-    const sources = Rx.Observable.from([
-      new Promise((res: any) => { res(0); }),
-      new Promise((res: any, rej: any) => { rej(1); }),
-      new Promise((res: any) => { res(2); }),
-      new Promise((res: any) => { res(3); }),
-    ]).take(10);
+    const sources = from([
+      new Promise<number>((res) => { res(0); }),
+      new Promise<number>((res, rej) => { rej(1); }),
+      new Promise<number>((res) => { res(2); }),
+      new Promise<number>((res) => { res(3); }),
+    ]).pipe(take(10));
 
-    const res = [];
-    (<any>sources.concatAll()).subscribe(
-      (x: number) => { res.push(x); },
-      (err: any) => {
+    const res: number[] = [];
+    sources.pipe(concatAll()).subscribe(
+      (x) => { res.push(x); },
+      (err) => {
         expect(res.length).to.equal(1);
         expect(err).to.equal(1);
         done();
@@ -65,25 +63,25 @@ describe('Observable.prototype.concatAll', () => {
   });
 
   it('should concat all observables in an observable', () => {
-    const e1 = Rx.Observable.from([
-      Rx.Observable.of('a'),
-      Rx.Observable.of('b'),
-      Rx.Observable.of('c')
-    ]).take(10);
+    const e1 = from([
+      of('a'),
+      of('b'),
+      of('c')
+    ]).pipe(take(10));
     const expected = '(abc|)';
 
-    expectObservable(e1.concatAll()).toBe(expected);
+    expectObservable(e1.pipe(concatAll())).toBe(expected);
   });
 
   it('should throw if any child observable throws', () => {
-    const e1 = Rx.Observable.from([
-      Rx.Observable.of('a'),
-      Rx.Observable.throw('error'),
-      Rx.Observable.of('c')
-    ]).take(10);
+    const e1 = from([
+      of('a'),
+      throwError('error'),
+      of('c')
+    ]).pipe(take(10));
     const expected = '(a#)';
 
-    expectObservable(e1.concatAll()).toBe(expected);
+    expectObservable(e1.pipe(concatAll())).toBe(expected);
   });
 
   it('should concat merging a hot observable of non-overlapped observables', () => {
@@ -96,7 +94,7 @@ describe('Observable.prototype.concatAll', () => {
     const e1 =   hot('--x---------y--------z--------|', values);
     const expected = '--a-b---------c-d-e-f-g-h-i-j-k-|';
 
-    expectObservable(e1.concatAll()).toBe(expected);
+    expectObservable(e1.pipe(concatAll())).toBe(expected);
   });
 
   it('should raise error if inner observable raises error', () => {
@@ -108,7 +106,7 @@ describe('Observable.prototype.concatAll', () => {
     const e1 =   hot('--x---------y--------z--------|', values);
     const expected = '--a-b---------c-d-e-f-#';
 
-    expectObservable(e1.concatAll()).toBe(expected);
+    expectObservable(e1.pipe(concatAll())).toBe(expected);
   });
 
   it('should raise error if outer observable raises error', () => {
@@ -119,7 +117,7 @@ describe('Observable.prototype.concatAll', () => {
     const e1 =   hot('--y---------z---#    ', values);
     const expected = '--a-b---------c-#';
 
-    expectObservable(e1.concatAll()).toBe(expected);
+    expectObservable(e1.pipe(concatAll())).toBe(expected);
   });
 
   it('should complete without emit if both sources are empty', () => {
@@ -129,7 +127,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =    '  ^   !';
     const expected =  '------|';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -140,10 +138,10 @@ describe('Observable.prototype.concatAll', () => {
     const e1 =   cold('-');
     const e1subs =    '^';
     const e2 =   cold('--|');
-    const e2subs = [];
+    const e2subs: string[] = [];
     const expected =  '-';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -157,7 +155,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =    '  ^';
     const expected =  '---';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -168,10 +166,10 @@ describe('Observable.prototype.concatAll', () => {
     const e1 =   cold('-');
     const e1subs =    '^';
     const e2 =   cold('-');
-    const e2subs = [];
+    const e2subs: string[] = [];
     const expected =  '-';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -185,7 +183,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =    '  ^   !';
     const expected =  '------#';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -196,10 +194,10 @@ describe('Observable.prototype.concatAll', () => {
     const e1 =   cold('---#');
     const e1subs =    '^  !';
     const e2 =   cold('----|');
-    const e2subs = [];
+    const e2subs: string[] = [];
     const expected =  '---#';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -210,10 +208,10 @@ describe('Observable.prototype.concatAll', () => {
     const e1 =   cold('---#');
     const e1subs =    '^  !';
     const e2 =   cold('------#');
-    const e2subs = [];
+    const e2subs: string[] = [];
     const expected =  '---#';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -227,7 +225,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =    '     ^       !';
     const expected =  '--a----------|';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -241,7 +239,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =    '  ^    !';
     const expected =  '----a--|';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -256,7 +254,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =    '     ^';
     const expected =  '--a---';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -267,10 +265,10 @@ describe('Observable.prototype.concatAll', () => {
     const e1 =   cold('-');
     const e1subs =    '^';
     const e2 =   cold('--a--|');
-    const e2subs = [];
+    const e2subs: string[] = [];
     const expected =  '-';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -284,7 +282,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =    '    ^       !';
     const expected =  '---a-----b--|';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -299,7 +297,7 @@ describe('Observable.prototype.concatAll', () => {
     const unsub =     '                 !    ';
     const expected =  '---a-a--a-----b-b     ';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -314,10 +312,11 @@ describe('Observable.prototype.concatAll', () => {
     const expected =  '---a-a--a-----b-b-    ';
     const unsub =     '                 !    ';
 
-    const result = Observable.of(e1, e2)
-      .mergeMap((x: any) => Observable.of(x))
-      .concatAll()
-      .mergeMap((x: any) => Observable.of(x));
+    const result = of(e1, e2).pipe(
+      mergeMap((x) => of(x)),
+      concatAll(),
+      mergeMap((x) => of(x))
+    );
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -328,10 +327,10 @@ describe('Observable.prototype.concatAll', () => {
     const e1 =   cold('--#');
     const e1subs =    '^ !';
     const e2 =   cold('----a--|');
-    const e2subs = [];
+    const e2subs: string[] = [];
     const expected =  '--#';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -345,7 +344,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =    '     ^      !';
     const expected =  '--a---------#';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -360,7 +359,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =   '       ^      !';
     const expected = '--a--b--x--y--|';
 
-    const result = Observable.of(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -375,7 +374,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =   '            ^      !';
     const expected = '--a--b--c----x-y-z-|';
 
-    const result = Observable.of<Rx.Observable<string>>(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -389,7 +388,7 @@ describe('Observable.prototype.concatAll', () => {
     const e2subs =   '           ^     !';
     const expected = '--a--b--c--y--z--|';
 
-    const result = Observable.of<Rx.Observable<string>>(e1, e2).concatAll();
+    const result = of(e1, e2).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -405,7 +404,7 @@ describe('Observable.prototype.concatAll', () => {
     const e3subs =    '          ^     !';
     const expected =  '---a---b-----c--|';
 
-    const result = Observable.of<Rx.Observable<string>>(e1, e2, e3, rxTestScheduler).concatAll();
+    const result = of(e1, e2, e3, rxTestScheduler).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -418,7 +417,7 @@ describe('Observable.prototype.concatAll', () => {
     const e1subs =    '^    !';
     const expected =  '---a-|';
 
-    const result = Observable.of(e1).concatAll();
+    const result = of(e1).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -429,9 +428,58 @@ describe('Observable.prototype.concatAll', () => {
     const e1subs =    '^    !';
     const expected =  '---a-|';
 
-    const result = Observable.of<Rx.Observable<string>>(e1, rxTestScheduler).concatAll();
+    const result = of(e1, rxTestScheduler).pipe(concatAll());
 
     expectObservable(result).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
+  });
+
+  type(() => {
+    /* tslint:disable:no-unused-variable */
+    const source1 = of(1, 2, 3);
+    const source2 = [1, 2, 3];
+    const source3 = new Promise<number>(d => d(1));
+
+    let result: Observable<number> = of(source1, source2, source3)
+      .pipe(concatAll());
+    /* tslint:enable:no-unused-variable */
+  });
+
+  type(() => {
+    /* tslint:disable:no-unused-variable */
+    const source1 = of(1, 2, 3);
+    const source2 = [1, 2, 3];
+    const source3 = new Promise<number>(d => d(1));
+
+    let result: Observable<number> = of(source1, source2, source3).pipe(
+      concatAll()
+    );
+    /* tslint:enable:no-unused-variable */
+  });
+
+  type(() => {
+    // coerce type to a specific type
+    /* tslint:disable:no-unused-variable */
+    const source1 = of(1, 2, 3);
+    const source2 = [1, 2, 3];
+    const source3 = new Promise<number>(d => d(1));
+
+    let result: Observable<string> = of(<any>source1, <any>source2, <any>source3).pipe(
+      concatAll<string>()
+    );
+    /* tslint:enable:no-unused-variable */
+  });
+
+  type(() => {
+    // coerce type to a specific type
+    /* tslint:disable:no-unused-variable */
+    const source1 = of(1, 2, 3);
+    const source2 = [1, 2, 3];
+    const source3 = new Promise<number>(d => d(1));
+
+    let result: Observable<string> = of(<any>source1, <any>source2, <any>source3).pipe(
+      concatAll<string>()
+    );
+    /* tslint:enable:no-unused-variable */
   });
 });

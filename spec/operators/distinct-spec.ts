@@ -1,20 +1,15 @@
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
-
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
-const Observable = Rx.Observable;
+import { distinct, mergeMap } from 'rxjs/operators';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
+import { of } from 'rxjs';
 
 /** @test {distinct} */
-describe('Observable.prototype.distinct', () => {
+describe('distinct operator', () => {
   it('should distinguish between values', () => {
     const e1 =   hot('--a--a--a--b--b--a--|');
     const e1subs =   '^                   !';
     const expected = '--a--------b--------|';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -23,7 +18,7 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '^                  ';
     const expected = '--a--------b-------';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -32,7 +27,7 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '^';
     const expected = '-';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -41,7 +36,7 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '^';
     const expected = '-';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -50,7 +45,7 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '(^!)';
     const expected = '|';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -59,7 +54,7 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '^     !';
     const expected = '------|';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -68,15 +63,15 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '^    !';
     const expected = '--a--|';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
   it('should emit if source is scalar', () => {
-    const e1 = Observable.of('a');
+    const e1 = of('a');
     const expected = '(a|)';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
   });
 
   it('should raises error if source raises error', () => {
@@ -84,7 +79,7 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '^       !';
     const expected = '--a-----#';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -93,7 +88,7 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '(^!)';
     const expected = '#';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -102,7 +97,7 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '^                   !';
     const expected = '--a--b--c--d--e--f--|';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -112,7 +107,7 @@ describe('Observable.prototype.distinct', () => {
     const expected = '--a--b-----          ';
     const unsub =    '          !          ';
 
-    const result = (<any>e1).distinct();
+    const result = (<any>e1).pipe(distinct());
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -124,10 +119,11 @@ describe('Observable.prototype.distinct', () => {
     const expected = '--a--b-----          ';
     const unsub =    '          !          ';
 
-    const result = (<any>e1
-      .mergeMap((x: any) => Observable.of(x)))
-      .distinct()
-      .mergeMap((x: any) => Observable.of(x));
+    const result = (<any>e1).pipe(
+      mergeMap((x: any) => of(x)),
+      distinct(),
+      mergeMap((x: any) => of(x)),
+    );
 
     expectObservable(result, unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
@@ -138,7 +134,7 @@ describe('Observable.prototype.distinct', () => {
     const e1subs =   '^                   !';
     const expected = '--a-----------------|';
 
-    expectObservable((<any>e1).distinct()).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -149,7 +145,7 @@ describe('Observable.prototype.distinct', () => {
     const expected = '--a--b--c-----------|';
     const selector = (value: number) => value % 3;
 
-    expectObservable((<any>e1).distinct(selector)).toBe(expected, values);
+    expectObservable((<any>e1).pipe(distinct(selector))).toBe(expected, values);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -164,7 +160,7 @@ describe('Observable.prototype.distinct', () => {
       return value;
     };
 
-    expectObservable((<any>e1).distinct(selector)).toBe(expected, undefined, new Error('d is for dumb'));
+    expectObservable((<any>e1).pipe(distinct(selector))).toBe(expected, undefined, new Error('d is for dumb'));
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
@@ -175,7 +171,7 @@ describe('Observable.prototype.distinct', () => {
     const e2subs =   '^                   !';
     const expected = '--a--b--------a--b--|';
 
-    expectObservable((<any>e1).distinct(null, e2)).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct(null, e2))).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
     expectSubscriptions(e2.subscriptions).toBe(e2subs);
   });
@@ -187,7 +183,7 @@ describe('Observable.prototype.distinct', () => {
     const e2subs =   '^            !';
     const expected = '--a--b-------#';
 
-    expectObservable((<any>e1).distinct(null, e2)).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct(null, e2))).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
     expectSubscriptions(e2.subscriptions).toBe(e2subs);
   });
@@ -200,7 +196,7 @@ describe('Observable.prototype.distinct', () => {
     const unsub =    '           !         ';
     const expected = '--a--b------';
 
-    expectObservable((<any>e1).distinct(null, e2), unsub).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct(null, e2)), unsub).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
     expectSubscriptions(e2.subscriptions).toBe(e2subs);
   });
@@ -212,7 +208,7 @@ describe('Observable.prototype.distinct', () => {
     const e2subs =   '^                   !';
     const expected = '--a--b--------a--b--|';
 
-    expectObservable((<any>e1).distinct(null, e2)).toBe(expected);
+    expectObservable((<any>e1).pipe(distinct(null, e2))).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
     expectSubscriptions(e2.subscriptions).toBe(e2subs);
   });

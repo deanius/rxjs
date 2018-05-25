@@ -1,7 +1,6 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
 
-declare const __root__: any;
 const Observable = Rx.Observable;
 
 /** @test {toPromise} */
@@ -9,6 +8,13 @@ describe('Observable.prototype.toPromise', () => {
   it('should convert an Observable to a promise of its last value', (done: MochaDone) => {
     Observable.of(1, 2, 3).toPromise(Promise).then((x: number) => {
       expect(x).to.equal(3);
+      done();
+    });
+  });
+
+  it('should convert an empty Observable to a promise of undefined', (done: MochaDone) => {
+    Observable.empty().toPromise(Promise).then((x) => {
+      expect(x).to.be.undefined;
       done();
     });
   });
@@ -24,18 +30,14 @@ describe('Observable.prototype.toPromise', () => {
 
   it('should allow for global config via Rx.config.Promise', (done: MochaDone) => {
     let wasCalled = false;
-    __root__.Rx = {};
-    __root__.Rx.config = {};
-    __root__.Rx.config.Promise = function MyPromise(callback) {
+    Rx.config.Promise = function MyPromise(callback: Function) {
       wasCalled = true;
-      return new Promise(callback);
-    };
+      return new Promise(callback as any);
+    } as any;
 
     Observable.of(42).toPromise().then((x: number) => {
       expect(wasCalled).to.be.true;
       expect(x).to.equal(42);
-
-      delete __root__.Rx;
       done();
     });
   });

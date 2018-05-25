@@ -1,13 +1,9 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import {GroupedObservable} from '../../dist/cjs/operator/groupBy';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { GroupedObservable } from 'rxjs/operators/groupBy';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 declare const rxTestScheduler: Rx.TestScheduler;
 const Observable = Rx.Observable;
@@ -27,11 +23,11 @@ describe('Observable.prototype.groupBy', () => {
     expectObservable(source).toBe(expected, expectedValues);
   });
 
-  function reverseString(str) {
+  function reverseString(str: string) {
     return str.split('').reverse().join('');
   }
 
-  function mapObject(obj, fn) {
+  function mapObject(obj: object, fn: Function) {
     const out = {};
     for (const p in obj) {
       if (obj.hasOwnProperty(p)) {
@@ -85,7 +81,7 @@ describe('Observable.prototype.groupBy', () => {
       { key: 0, values: [6] }
     ];
 
-    const resultingGroups = [];
+    const resultingGroups: { key: number, values: number [] }[] = [];
 
     Observable.of(1, 2, 3, 4, 5, 6)
       .groupBy(
@@ -93,7 +89,7 @@ describe('Observable.prototype.groupBy', () => {
         (x: number) => x,
         (g: any) => g.skip(1))
       .subscribe((g: any) => {
-        let group = { key: g.key, values: [] };
+        let group = { key: g.key, values: [] as number[] };
 
         g.subscribe((x: any) => {
           group.values.push(x);
@@ -548,7 +544,7 @@ describe('Observable.prototype.groupBy', () => {
     const source = e1
       .groupBy((val: string) => val.toLowerCase().trim())
       .map((group: any) => {
-        const arr = [];
+        const arr: any[] = [];
 
         const subscription = group
           .materialize()
@@ -612,7 +608,7 @@ describe('Observable.prototype.groupBy', () => {
     const source = e1
       .groupBy((val: string) => val.toLowerCase().trim())
       .map((group: any) => {
-        const arr = [];
+        const arr: any[] = [];
 
         const subscription = group
           .materialize()
@@ -883,7 +879,7 @@ describe('Observable.prototype.groupBy', () => {
         (group: any) => group.skip(2)
       )
       .map((group: any) => {
-        const arr = [];
+        const arr: any[] = [];
 
         const subscription = group
           .materialize()
@@ -901,6 +897,39 @@ describe('Observable.prototype.groupBy', () => {
       });
 
     expectObservable(source, unsub).toBe(expected, expectedGroups);
+  });
+
+  it('should dispose a durationSelector after closing the group',
+  () => {
+    const obs = hot('-0-1--------2-|');
+    const sub =     '^              !' ;
+    let unsubs = [
+                    '-^--!',
+                    '---^--!',
+                    '------------^-!',
+    ];
+    const dur =     '---s';
+    const durations = [
+      cold(dur),
+      cold(dur),
+      cold(dur)
+    ];
+
+    const unsubscribedFrame = Rx.TestScheduler
+      .parseMarblesAsSubscriptions(sub)
+      .unsubscribedFrame;
+
+    obs.groupBy(
+      (val: string) => val,
+      (val: string) => val,
+      (group: any) => durations[group.key]
+    ).subscribe();
+
+    rxTestScheduler.schedule(() => {
+      durations.forEach((d, i) => {
+        expectSubscriptions(d.subscriptions).toBe(unsubs[i]);
+      });
+    }, unsubscribedFrame);
   });
 
   it('should allow using a durationSelector, but keySelector throws', () => {
@@ -1077,7 +1106,7 @@ describe('Observable.prototype.groupBy', () => {
         (group: any) => group.skip(2)
       )
       .map((group: any, index: number) => {
-        const arr = [];
+        const arr: any[] = [];
 
         const subscription = group
           .materialize()
@@ -1154,7 +1183,7 @@ describe('Observable.prototype.groupBy', () => {
         (group: any) => group.skip(2)
       )
       .map((group: any) => {
-        const arr = [];
+        const arr: any[] = [];
 
         const subscription = group
           .materialize()
@@ -1225,7 +1254,7 @@ describe('Observable.prototype.groupBy', () => {
          (val: string) => val.toLowerCase().trim(),
          (val: string) => val
        ).map((group: any) => {
-         const innerNotifications = [];
+         const innerNotifications: any[] = [];
          const subscriptionFrame = subscriptionFrames[group.key];
 
          rxTestScheduler.schedule(() => {
@@ -1275,7 +1304,7 @@ describe('Observable.prototype.groupBy', () => {
         (group: any) => group.skip(7)
       )
       .map((group: any) => {
-        const arr = [];
+        const arr: any[] = [];
 
         rxTestScheduler.schedule(() => {
           group
@@ -1324,7 +1353,7 @@ describe('Observable.prototype.groupBy', () => {
         (group: any) => group.skip(7)
       )
       .map((group: any) => {
-        const arr = [];
+        const arr: any[] = [];
 
         rxTestScheduler.schedule(() => {
           group
@@ -1375,7 +1404,7 @@ describe('Observable.prototype.groupBy', () => {
         (group: any) => group.skip(7)
       )
       .map((group: any) => {
-        const arr = [];
+        const arr: any[] = [];
 
         rxTestScheduler.schedule(() => {
           group

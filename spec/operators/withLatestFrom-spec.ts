@@ -1,13 +1,9 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import {lowerCaseO} from '../helpers/test-helper';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { lowerCaseO } from '../helpers/test-helper';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 const Observable = Rx.Observable;
 
@@ -59,7 +55,7 @@ describe('Observable.prototype.withLatestFrom', () => {
       y: 'cgk',
       z: 'dhl'
     };
-    const project = function (a, b, c) { return a + b + c; };
+    const project = function (a: string, b: string, c: string) { return a + b + c; };
 
     const result = e1.withLatestFrom(e2, e3, project);
 
@@ -83,7 +79,7 @@ describe('Observable.prototype.withLatestFrom', () => {
       y: 'cgk',
       z: 'dhl'
     };
-    const project = function (a, b, c) { return a + b + c; };
+    const project = function (a: string, b: string, c: string) { return a + b + c; };
 
     const result = e1.withLatestFrom(e2, e3, project);
 
@@ -107,7 +103,7 @@ describe('Observable.prototype.withLatestFrom', () => {
       y: 'cgk',
       z: 'dhl'
     };
-    const project = function (a, b, c) { return a + b + c; };
+    const project = function (a: string, b: string, c: string) { return a + b + c; };
 
     const result = e1
       .mergeMap((x: string) => Observable.of(x))
@@ -202,7 +198,7 @@ describe('Observable.prototype.withLatestFrom', () => {
     const values = {
       x: 'bfj'
     };
-    const project = function (a, b, c) { return a + b + c; };
+    const project = function (a: string, b: string, c: string) { return a + b + c; };
 
     const result = e1.withLatestFrom(e2, e3, project);
 

@@ -1,13 +1,8 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { hot, cold, expectObservable, expectSubscriptions, time } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
-declare const time: typeof marbleTestingSignature.time;
+declare function asDiagram(arg: string): Function;
 
 declare const rxTestScheduler: Rx.TestScheduler;
 const Observable = Rx.Observable;
@@ -163,6 +158,18 @@ describe('Observable.prototype.throttleTime', () => {
       const e1subs =   '^                     !';
       const t =  time( '----|                 ');
       const expected = '-----y--------x-----x-|';
+
+      const result = e1.throttleTime(t, rxTestScheduler, { leading: false, trailing: true });
+
+      expectObservable(result).toBe(expected);
+      expectSubscriptions(e1.subscriptions).toBe(e1subs);
+    });
+
+    asDiagram('throttleTime(fn, { leading: false, trailing: true })')('should emit the last throttled value when complete', () => {
+      const e1 =   hot('-a-xy-----b--x--cxx|');
+      const e1subs =   '^                  !';
+      const t =   time('----|              ');
+      const expected = '-----y--------x----(x|)';
 
       const result = e1.throttleTime(t, rxTestScheduler, { leading: false, trailing: true });
 

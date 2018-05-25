@@ -1,19 +1,14 @@
-import {expect} from 'chai';
-import * as Rx from '../../dist/cjs/Rx';
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
-import { doNotUnsubscribe } from '../helpers/doNotUnsubscribe';
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const cold: typeof marbleTestingSignature.cold;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 const Observable = Rx.Observable;
 
 /** @test {find} */
 describe('Observable.prototype.find', () => {
-  function truePredicate(x) {
+  function truePredicate(x: any) {
     return true;
   }
 
@@ -23,7 +18,7 @@ describe('Observable.prototype.find', () => {
     const subs =       '^        !       ';
     const expected =   '---------(c|)    ';
 
-    const predicate = function (x) { return x % 5 === 0; };
+    const predicate = function (x: number) { return x % 5 === 0; };
 
     expectObservable((<any>source).find(predicate)).toBe(expected, values);
     expectSubscriptions(source.subscriptions).toBe(subs);
@@ -60,7 +55,7 @@ describe('Observable.prototype.find', () => {
     const subs =       '^ !';
     const expected =   '--(a|)';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       return value === 'a';
     };
 
@@ -73,7 +68,7 @@ describe('Observable.prototype.find', () => {
     const subs =       '^    !';
     const expected =   '-----(b|)';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       return value === 'b';
     };
 
@@ -89,7 +84,7 @@ describe('Observable.prototype.find', () => {
     const finder = {
       target: 'b'
     };
-    const predicate = function (value) {
+    const predicate = function (this: typeof finder, value: string) {
       return value === this.target;
     };
 
@@ -102,7 +97,7 @@ describe('Observable.prototype.find', () => {
     const subs =       '^          !';
     const expected =   '-----------(x|)';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       return value === 'z';
     };
 
@@ -142,7 +137,7 @@ describe('Observable.prototype.find', () => {
     const subs =       '^       !';
     const expected =   '--------#';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       return value === 'z';
     };
 
@@ -155,38 +150,11 @@ describe('Observable.prototype.find', () => {
     const subs =       '^ !';
     const expected =   '--#';
 
-    const predicate = function (value) {
+    const predicate = function (value: string) {
       throw 'error';
     };
 
     expectObservable((<any>source).find(predicate)).toBe(expected);
-    expectSubscriptions(source.subscriptions).toBe(subs);
-  });
-
-  it('should unsubscribe from source when complete, even if following operator does not unsubscribe', () => {
-    const values = {a: 3, b: 9, c: 15, d: 20};
-    const source = hot('---a--b--c--d---|', values);
-    const subs =       '^        !       ';
-    const expected =   '---------(c|)    ';
-
-    const predicate = function (x) { return x % 5 === 0; };
-
-    expectObservable((<any>source).find(predicate).let(doNotUnsubscribe)).toBe(expected, values);
-    expectSubscriptions(source.subscriptions).toBe(subs);
-  });
-
-  it('should unsubscribe from source when predicate function errors,' +
-    ' even if followring operator does not unsubscribe', () => {
-
-    const source = hot('--a--b--c--|');
-    const subs =       '^ !';
-    const expected =   '--#';
-
-    const predicate = function (value) {
-      throw 'error';
-    };
-
-    expectObservable((<any>source).find(predicate).let(doNotUnsubscribe)).toBe(expected);
     expectSubscriptions(source.subscriptions).toBe(subs);
   });
 

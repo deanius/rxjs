@@ -1,12 +1,9 @@
-import * as Rx from '../../dist/cjs/Rx';
+import * as Rx from 'rxjs/Rx';
 import { expect } from 'chai';
 
-import marbleTestingSignature = require('../helpers/marble-testing'); // tslint:disable-line:no-require-imports
+import { hot, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare const { asDiagram };
-declare const hot: typeof marbleTestingSignature.hot;
-declare const expectObservable: typeof marbleTestingSignature.expectObservable;
-declare const expectSubscriptions: typeof marbleTestingSignature.expectSubscriptions;
+declare function asDiagram(arg: string): Function;
 
 const Observable = Rx.Observable;
 
@@ -37,8 +34,8 @@ describe('Observable.prototype.sample', () => {
   });
 
   it('should behave properly when notified by the same observable as the source (issue #2075)', () => {
-    const item$ = new Rx.Subject();
-    const results = [];
+    const item$ = new Rx.Subject<number>();
+    const results: number[] = [];
 
     item$
       .sample(item$)

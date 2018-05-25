@@ -1,7 +1,7 @@
-import {expect} from 'chai';
-import * as Rx from '../dist/cjs/Rx';
+import { expect } from 'chai';
+import * as Rx from 'rxjs/Rx';
+import { expectObservable } from './helpers/marble-testing';
 
-declare const expectObservable;
 const Notification = Rx.Notification;
 
 /** @test {Notification} */
@@ -162,7 +162,7 @@ describe('Notification', () => {
 
     it('should accept observer for error Notification', () => {
       let observed = false;
-      const n = Notification.createError();
+      const n = Notification.createError<string>();
       const observer = Rx.Subscriber.create((x: string) => {
         throw 'should not be called';
       }, (err: any) => {
